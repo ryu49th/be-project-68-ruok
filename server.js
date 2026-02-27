@@ -14,12 +14,12 @@ app.set('query parser','extended');
 app.use(express.json());
 
 app.use(cookieParser());
-const hospital = require('./routes/hospitals');
-const appointments = require('./routes/appointments');
+const workingspace = require('./routes/workingspaces');
+const reservations = require('./routes/reservations');
 const auth = require('./routes/auth');
 
-app.use('/api/v1/hospitals',hospital);
-app.use('/api/v1/appointments',appointments);
+app.use('/api/v1/workingspaces',workingspace);
+app.use('/api/v1/reservations',reservations);
 app.use('/api/v1/auth',auth);
 
 const port=process.env.port || 5000;
