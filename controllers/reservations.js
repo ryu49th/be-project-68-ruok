@@ -86,7 +86,7 @@ exports.getReservation=async (req,res,next)=>{
 //@access Private
 exports.addReservation= async(req,res,next)=>{
     try{
-        req.body.WorkingSpace=req.params.workingspaceId;
+        req.body.workingspaces=req.params.workingspaceId;
 
         const workingspace = await WorkingSpace.findById(req.params.workingspaceId);
 
