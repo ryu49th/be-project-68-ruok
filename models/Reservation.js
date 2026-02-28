@@ -10,7 +10,7 @@ const ReservationSchema=new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    WorkingSpace:{
+    workingspaces:{
         type:mongoose.Schema.ObjectId,
         ref: 'WorkingSpace',
         required: true
