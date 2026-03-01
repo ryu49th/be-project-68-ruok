@@ -8,7 +8,8 @@ const UserSchema=new mongoose.Schema({
         required:[true,'Please add a name']
     },
     tel:{
-        type: String
+        type: String,
+        unique: true
     },
     email:{
         type: String,

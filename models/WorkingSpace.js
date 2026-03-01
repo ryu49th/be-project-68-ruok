@@ -13,7 +13,8 @@ const WorkingSpaceSchema = new mongoose.Schema({
         required: [true, 'Please add an address']
     },
     tel: {
-        type: String
+        type: String,
+        unique: true
     },
     openTime: {
         type: String,
