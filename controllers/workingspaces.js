@@ -88,9 +88,39 @@ exports.getWorkingSpace=async (req,res,next)=>{
 //@route POST /api/v1/workingspaces
 //@access Private
 
-exports.createWorkingSpace = async (req,res,next)=>{
-    const workingspace = await WorkingSpace.create(req.body);
-    res.status(201).json({success:true, data: workingspace});
+exports.createWorkingSpace = async (req, res) => {
+    try {
+        const workingSpace = await WorkingSpace.create(req.body);
+        res.status(201).json({ 
+            success: true, 
+            data: workingSpace 
+        });
+    } catch (error) {
+        // Handle Mongoose Validation Error
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ 
+                success: false, 
+                error: messages 
+            });
+        }
+        
+        // Handle Duplicate Key Error (name ซ้ำ)
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'WorkingSpace name already exists' 
+            });
+        }
+        
+        // Handle other errors
+        console.error('Error creating working space:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Server Error',
+            message: error.message 
+        });
+    }
 }
 
 //@desc Update single workingspace
