@@ -11,7 +11,7 @@ exports.getReservations=async(req,res,next)=>{
 
     if(req.user.role !== 'admin'){
         query=Reservation.find({user:req.user.id}).populate({
-            path:'workingspace',
+            path:'workingspaces',
             select: 'name province tel'
         });
     } else{
@@ -20,7 +20,7 @@ exports.getReservations=async(req,res,next)=>{
             console.log(req.params.workingspaces);
 
             query=Reservation.find({
-                workingspaceId:req.params.workingspaceId
+                workingspaces:req.params.workingspaceId
             }).populate({
                 path: "workingspace",
                 select: 'name province tel'
@@ -28,7 +28,7 @@ exports.getReservations=async(req,res,next)=>{
             
         }else{
             query = Reservation.find().populate({
-                path: 'workingspace',
+                path: 'workingspaces',
                 select: 'name province tel'
             });
         }
@@ -53,16 +53,26 @@ exports.getReservations=async(req,res,next)=>{
 exports.getReservation=async (req,res,next)=>{
     try {
         const reservation = await Reservation.findById(req.params.id).populate({
-            path: 'workingspace',
+            path: 'workingspaces',
             select: 'name description tel'
         });
 
-        if(!reservation){
-            return res.status(404).json({success:false,message:`No reservation with the id of ${req.params.id}`});
+        if (!reservation) {
+            return res.status(404).json({
+                success: false,
+                message: `No reservation with the id of ${req.params.id}`
+            });
+        }
+
+        if (reservation.user.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({
+                success: false, 
+                message: 'Not authorized to view this reservation'
+            });
         }
 
         res.status(200).json({
-            success:true,
+            success: true,
             data: reservation
         });
     } catch (error) {
@@ -76,7 +86,7 @@ exports.getReservation=async (req,res,next)=>{
 //@access Private
 exports.addReservation= async(req,res,next)=>{
     try{
-        req.body.workingspace=req.params.workingspaceId;
+        req.body.workingspaces=req.params.workingspaceId;
 
         const workingspace = await WorkingSpace.findById(req.params.workingspaceId);
 
