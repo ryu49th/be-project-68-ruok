@@ -3,8 +3,16 @@ const mongoose = require('mongoose');
 const ReservationSchema = new mongoose.Schema({
     // ✅ แก้ ReserveDate → date
     date: {
-        type: Date,
-        required: [true, 'Please add a reservation date']
+    type: Date,
+    required: [true, 'Please add a reservation date'],
+    // ✅ เพิ่ม custom validator
+    validate: {
+        validator: function(value) {
+            // ตรวจสอบว่าเป็นวันที่สมเหตุสมผล (หลังปี 2020)
+            return value && value.getFullYear() >= 2020;
+        },
+        message: 'Please provide a valid date (year must be 2020 or later)'
+        }
     },
     
     // ✅ Field ใหม่สำหรับเวลาเริ่ม-สิ้นสุด
