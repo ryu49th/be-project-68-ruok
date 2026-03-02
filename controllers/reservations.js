@@ -129,6 +129,10 @@ exports.updateReservation=async (req,res,next) =>{
         if(reservation.user.toString()!== req.user.id && req.user.role != 'admin'){
             return res.status(401).json({success:false,message:`User ${req.user.id} is not authorized to update this reservation`});
         }
+
+        if (req.user.role !== 'admin') {
+            delete req.body.status;
+        }
         
         reservation = await Reservation.findByIdAndUpdate(req.params.id,req.body,{
             new:true,
@@ -168,5 +172,28 @@ exports.deleteReservation=async (req,res,next)=>{
     } catch (error){
         console.log(error);
         return res.status(500).json({success:false,message:"Cannot delete Reservation"});
+    }
+};
+
+// @desc    Update reservation status
+// @route   PUT /api/v1/reservations/:id/status
+// @access  Private (Admin only)
+exports.updateReservationStatus = async (req, res, next) => {
+    try {
+        let reservation = await Reservation.findById(req.params.id);
+
+        if (!reservation) {
+            return res.status(404).json({ success: false, message: 'Reservation not found' });
+        }
+
+        // Update only status
+        reservation = await Reservation.findByIdAndUpdate(req.params.id, 
+            { status: req.body.status }, 
+            { new: true, runValidators: true }
+        );
+
+        res.status(200).json({ success: true, data: reservation });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Cannot update status' });
     }
 };
