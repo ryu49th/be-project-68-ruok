@@ -88,7 +88,6 @@ exports.addReservation = async(req, res, next) => {
     try {
         req.body.workingspace = req.params.workingspaceId;
 
-        // ✅ ตรวจสอบว่าเป็น valid ObjectId หรือไม่
         const mongoose = require('mongoose');
         
         if (!mongoose.Types.ObjectId.isValid(req.params.workingspaceId)) {
@@ -109,12 +108,17 @@ exports.addReservation = async(req, res, next) => {
 
         req.body.user = req.user.id;
 
-        const existedReservations = await Reservation.find({ user: req.user.id });
+        // ✅ NEW LOGIC: Check reservations for THIS SPECIFIC DATE only
+        const existedReservations = await Reservation.find({ 
+            user: req.user.id,
+            date: req.body.date // Filters the database by the date sent in Postman
+        });
 
+        // Check if the user already has 3 reservations ON THAT DATE
         if (existedReservations.length >= 3 && req.user.role !== 'admin') {
             return res.status(400).json({
                 success: false,
-                message: `The user with ID ${req.user.id} has already made 3 reservations`
+                message: `The user with ID ${req.user.id} has already made 3 reservations for the date ${req.body.date}`
             });
         }
 
@@ -127,7 +131,6 @@ exports.addReservation = async(req, res, next) => {
     } catch (error) {
         console.error("Error:", error);
 
-        // ✅ แยกประเภท error
         if (error.name === 'CastError') {
             return res.status(400).json({
                 success: false,
