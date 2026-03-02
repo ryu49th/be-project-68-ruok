@@ -84,34 +84,68 @@ exports.getReservation=async (req,res,next)=>{
 //@desc Add reservation
 //@route POST /api/v1/workingspaces/:workingspaceId/reservation
 //@access Private
-exports.addReservation= async(req,res,next)=>{
-    try{
-        req.body.workingspaces=req.params.workingspaceId;
+exports.addReservation = async(req, res, next) => {
+    try {
+        req.body.workingspace = req.params.workingspaceId;
+
+        // ✅ ตรวจสอบว่าเป็น valid ObjectId หรือไม่
+        const mongoose = require('mongoose');
+        
+        if (!mongoose.Types.ObjectId.isValid(req.params.workingspaceId)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid workspace ID format: ${req.params.workingspaceId}`
+            });
+        }
 
         const workingspace = await WorkingSpace.findById(req.params.workingspaceId);
 
-        if(!workingspace){
-            return res.status(404).json({success:false,message: `No workingspace with the id of ${req.params.workingspaceId}`});
+        if (!workingspace) {
+            return res.status(404).json({
+                success: false,
+                message: `No workingspace with the id of ${req.params.workingspaceId}`
+            });
         }
 
-        req.body.user=req.user.id;
+        req.body.user = req.user.id;
 
-        const existedReservations=await Reservation.find({user:req.user.id});
+        const existedReservations = await Reservation.find({ user: req.user.id });
 
-        if(existedReservations.length >= 3 && req.user.role !== 'admin'){
-            return res.status(400).json({success:false,message:`The user with ID ${req.user.id} has already made 3 reservations`});
+        if (existedReservations.length >= 3 && req.user.role !== 'admin') {
+            return res.status(400).json({
+                success: false,
+                message: `The user with ID ${req.user.id} has already made 3 reservations`
+            });
         }
 
         const reservation = await Reservation.create(req.body);
 
         res.status(201).json({
-            success:true,
-            data:reservation
+            success: true,
+            data: reservation
         });
-    } catch(error){
-        console.log(error);
+    } catch (error) {
+        console.error("Error:", error);
 
-        return res.status(500).json({success:false,message:"Cannot create Reservation"});
+        // ✅ แยกประเภท error
+        if (error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid ID format`
+            });
+        }
+
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Cannot create Reservation"
+        });
     }
 }
 
