@@ -26,6 +26,14 @@ const WorkingSpaceSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a closing time'],
         match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please add a valid time in HH:mm format (e.g., 22:00)']
+    },
+    averageRating: {
+    type: Number,
+    default: 0
+    },
+    totalReviews: {
+        type: Number,
+        default: 0
     }
 }, {
     toJSON: { virtuals: true },

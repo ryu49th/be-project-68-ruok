@@ -163,3 +163,35 @@ exports.deleteWorkingSpace=async (req,res,next)=>{
         res.status(400).json({success: false});
     }
 }
+
+// @desc    Add rating to a working space
+// @route   POST /api/v1/workingspaces/:id/rating
+// @access  Private (Registered Users)
+exports.addWorkingSpaceRating = async (req, res, next) => {
+    try {
+        const { rating } = req.body;
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Please provide a rating between 1 and 5' 
+            });
+        }
+        
+        const workingspace = await WorkingSpace.findById(req.params.id);
+
+        if (!workingspace) {
+            return res.status(404).json({ success: false, message: 'Working space not found' });
+        }
+
+        const newTotalReviews = workingspace.totalReviews + 1;
+        const newAverage = ((workingspace.averageRating * workingspace.totalReviews) + rating) / newTotalReviews;
+
+        workingspace.averageRating = newAverage.toFixed(1);
+        workingspace.totalReviews = newTotalReviews;
+        await workingspace.save();
+
+        res.status(200).json({ success: true, data: workingspace });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Cannot add rating' });
+    }
+};

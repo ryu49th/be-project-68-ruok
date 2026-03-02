@@ -2,6 +2,8 @@ const Reservation = require('../models/Reservation');
 
 const WorkingSpace = require('../models/WorkingSpace');
 
+const nodemailer = require('nodemailer');
+
 //@desc Get all reservations
 //@route GET /api/v1/reservations
 //@access Public
@@ -163,6 +165,10 @@ exports.updateReservation=async (req,res,next) =>{
         if(reservation.user.toString()!== req.user.id && req.user.role != 'admin'){
             return res.status(401).json({success:false,message:`User ${req.user.id} is not authorized to update this reservation`});
         }
+
+        if (req.user.role !== 'admin') {
+            delete req.body.status;
+        }
         
         reservation = await Reservation.findByIdAndUpdate(req.params.id,req.body,{
             new:true,
@@ -202,5 +208,72 @@ exports.deleteReservation=async (req,res,next)=>{
     } catch (error){
         console.log(error);
         return res.status(500).json({success:false,message:"Cannot delete Reservation"});
+    }
+};
+
+// @desc    Update reservation status
+// @route   PUT /api/v1/reservations/:id/status
+// @access  Private (Admin only)
+exports.updateReservationStatus = async (req, res, next) => {
+    try {
+        let reservation = await Reservation.findById(req.params.id);
+
+        if (!reservation) {
+            return res.status(404).json({ success: false, message: 'Reservation not found' });
+        }
+
+        // Don't do anything if status is the same
+        if (reservation.status === req.body.status) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Status is already ${req.body.status}` 
+            });
+        }
+
+        reservation = await Reservation.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true, runValidators: true }
+        ).populate('user');
+
+        // Only sent when it's confirmed
+        if ((req.body.status === 'confirmed' || req.body.status === 'cancelled') && reservation.user && reservation.user.email) {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.FROM_EMAIL,
+                    pass: process.env.FROM_PASSWORD // App Password 16 หลัก
+                }
+            });
+
+            let mailOptions;
+            if (req.body.status === 'confirmed') {
+                mailOptions = {
+                    from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
+                    to: reservation.user.email,
+                    subject: 'ยืนยันการจอง Co-working Space สำเร็จ',
+                    text: `สวัสดีคุณ ${reservation.user.name}, การจองของคุณได้รับการอนุมัติเรียบร้อยแล้ว!`
+                };
+            }
+            else if (req.body.status === 'cancelled') {
+                mailOptions = {
+                    from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
+                    to: reservation.user.email,
+                    subject: 'การจอง Co-working Space ของคุณถูกยกเลิก',
+                    text: `สวัสดีคุณ ${reservation.user.name}, การจองของคุณในวันที่ ${reservation.date} ถูกยกเลิกเรียบร้อยแล้ว หากมีข้อสงสัยโปรดติดต่อเจ้าหน้าที่ค่ะ`
+                };
+            }
+
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log('Email sent successfully!');
+            } catch (err) {
+                console.log('Email Error:', err);
+            }
+        }
+
+        res.status(200).json({ success: true, data: reservation });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Cannot update status' });
     }
 };
