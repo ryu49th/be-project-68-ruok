@@ -8,44 +8,44 @@ const nodemailer = require('nodemailer');
 //@route GET /api/v1/reservations
 //@access Public
 
-exports.getReservations=async(req,res,next)=>{
+//@desc Get all reservations
+exports.getReservations = async(req, res, next) => {
     let query;
 
-    if(req.user.role !== 'admin'){
-        query=Reservation.find({user:req.user.id}).populate({
-            path:'workingspaces',
+    if (req.user.role !== 'admin') {
+        query = Reservation.find({ user: req.user.id }).populate({
+            path: 'workingspace',  // ✅ ถูกต้อง (เอกพจน์)
             select: 'name province tel'
         });
-    } else{
-        if(req.params.workingspaceId){
-            
-            console.log(req.params.workingspaces);
+    } else {
+        if (req.params.workingspaceId) {
+            console.log(req.params.workingspaceId);  // ✅ แก้จาก workingspaces → workingspaceId
 
-            query=Reservation.find({
-                workingspaces:req.params.workingspaceId
+            query = Reservation.find({
+                // ✅ แก้จาก workingspaceId → workingspace
+                workingspace: req.params.workingspaceId
             }).populate({
-                path: "workingspace",
+                path: "workingspace",  // ✅ ถูกต้อง
                 select: 'name province tel'
             });
-            
-        }else{
+        } else {
             query = Reservation.find().populate({
-                path: 'workingspaces',
+                path: 'workingspace',
                 select: 'name province tel'
             });
         }
     }
-    try{
+    
+    try {
         const reservations = await query;
-
         res.status(200).json({
-            success:true,
-            count:reservations.length,
+            success: true,
+            count: reservations.length,
             data: reservations
         });
-    } catch (error){
+    } catch (error) {
         console.log(error);
-        return res.status(500).json({success:false,message:"Cannot find Reservation"});
+        return res.status(500).json({ success: false, message: "Cannot find Reservation" });
     }
 };
 
@@ -90,7 +90,6 @@ exports.addReservation = async(req, res, next) => {
     try {
         req.body.workingspace = req.params.workingspaceId;
 
-        // ✅ ตรวจสอบว่าเป็น valid ObjectId หรือไม่
         const mongoose = require('mongoose');
         
         if (!mongoose.Types.ObjectId.isValid(req.params.workingspaceId)) {
@@ -111,12 +110,17 @@ exports.addReservation = async(req, res, next) => {
 
         req.body.user = req.user.id;
 
-        const existedReservations = await Reservation.find({ user: req.user.id });
+        // ✅ NEW LOGIC: Check reservations for THIS SPECIFIC DATE only
+        const existedReservations = await Reservation.find({ 
+            user: req.user.id,
+            date: req.body.date // Filters the database by the date sent in Postman
+        });
 
+        // Check if the user already has 3 reservations ON THAT DATE
         if (existedReservations.length >= 3 && req.user.role !== 'admin') {
             return res.status(400).json({
                 success: false,
-                message: `The user with ID ${req.user.id} has already made 3 reservations`
+                message: `The user with ID ${req.user.id} has already made 3 reservations for the date ${req.body.date}`
             });
         }
 
@@ -129,7 +133,6 @@ exports.addReservation = async(req, res, next) => {
     } catch (error) {
         console.error("Error:", error);
 
-        // ✅ แยกประเภท error
         if (error.name === 'CastError') {
             return res.status(400).json({
                 success: false,
