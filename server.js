@@ -35,10 +35,7 @@ app.use(limiter);
 //Prevent http param pollutions
 app.use(hpp());
 //Enable CORS
-const allowedOrigins = process.env.FRONTEND_URL
-    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
-    : true;
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 
 const workingspace = require('./routes/workingspaces');
 const reservations = require('./routes/reservations');
