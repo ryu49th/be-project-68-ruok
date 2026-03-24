@@ -184,7 +184,19 @@ exports.updateReservation=async (req,res,next) =>{
         }
 
         if (req.user.role !== 'admin') {
-            delete req.body.status;
+            if (req.body.status !== undefined) {
+                const normalizedStatus = req.body.status.toString().toLowerCase();
+
+                // Non-admin users can only cancel their own reservation.
+                if (normalizedStatus !== 'cancelled' && normalizedStatus !== 'cancel') {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'You can only update status to cancelled'
+                    });
+                }
+
+                req.body.status = 'cancelled';
+            }
         }
         
         reservation = await Reservation.findByIdAndUpdate(req.params.id,req.body,{
