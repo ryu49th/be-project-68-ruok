@@ -35,7 +35,10 @@ app.use(limiter);
 //Prevent http param pollutions
 app.use(hpp());
 //Enable CORS
-app.use(cors());
+const allowedOrigins = process.env.FRONTEND_URL
+    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
+    : true;
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 const workingspace = require('./routes/workingspaces');
 const reservations = require('./routes/reservations');
@@ -45,7 +48,7 @@ app.use('/api/v1/workingspaces',workingspace);
 app.use('/api/v1/reservations',reservations);
 app.use('/api/v1/auth',auth);
 
-const port=process.env.port || 5003;
+const port=process.env.PORT || 5000;
 
 const server = app.listen(port, console.log('server runing in ', process.env.node_env, 'mode on port ', port));
 
