@@ -9,13 +9,20 @@ const nodemailer = require('nodemailer');
 //@access Public
 
 //@desc Get all reservations
+//@route GET /api/v1/reservations
+//@access Public
+
+//@desc Get all reservations
 exports.getReservations = async(req, res, next) => {
     let query;
 
     if (req.user.role !== 'admin') {
         query = Reservation.find({ user: req.user.id }).populate({
-            path: 'workingspace',  // ✅ ถูกต้อง (เอกพจน์)
-            select: 'name province tel'
+            path: 'workingspace',
+            select: 'name address tel openTime closeTime'
+        }).populate({
+            path: 'user',
+            select: 'name email tel'
         });
     } else {
         if (req.params.workingspaceId) {
@@ -26,12 +33,15 @@ exports.getReservations = async(req, res, next) => {
                 workingspace: req.params.workingspaceId
             }).populate({
                 path: "workingspace",  // ✅ ถูกต้อง
-                select: 'name province tel'
+                select: 'name address tel openTime closeTime'
             });
         } else {
             query = Reservation.find().populate({
                 path: 'workingspace',
-                select: 'name province tel'
+                select: 'name address tel openTime closeTime'
+            }).populate({
+                path: 'user',
+                select: 'name email tel'
             });
         }
     }
@@ -55,8 +65,11 @@ exports.getReservations = async(req, res, next) => {
 exports.getReservation=async (req,res,next)=>{
     try {
         const reservation = await Reservation.findById(req.params.id).populate({
-            path: 'workingspaces',
-            select: 'name description tel'
+            path: 'workingspace',
+            select: 'name address tel openTime closeTime'
+        }).populate({
+            path: 'user',
+            select: 'name email tel'
         });
 
         if (!reservation) {
@@ -109,6 +122,7 @@ exports.addReservation = async(req, res, next) => {
         }
 
         req.body.user = req.user.id;
+        req.body.contactPhone = req.user.tel ? req.user.tel.replace(/\D/g, "") : "";
 
         // ✅ NEW LOGIC: Check reservations for THIS SPECIFIC DATE only
         const existedReservations = await Reservation.find({ 

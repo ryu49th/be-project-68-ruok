@@ -1,0 +1,24 @@
+' -- create working space --
+@startuml Create WorkingSpace (POST)
+
+header VacQ Sequence Diagram
+footer Page %page% of %lastpage%
+title "Create WorkingSpace (POST)"
+
+participant "Client" as client
+participant "<<javascript>>\n:server" as server
+participant "<<router>>\n:workingspaces" as routerWS
+participant "<<controllers>>\n:workingspaces" as controllersWS
+participant "<<model>>\n:WorkingSpace" as modelWS
+database "<<MongoDB>>\n:workingspaces" as WSDatabase
+
+client->server ++: POST /api/v1/workingspaces
+server->routerWS ++: app.use('/api/v1/workingspaces', workingspaces)
+routerWS -> controllersWS ++: createWorkingSpace(req.body)
+controllersWS->modelWS ++: create(req.body)
+modelWS -> WSDatabase ++: insert
+WSDatabase --> modelWS --: newDoc
+controllersWS<-- modelWS --: workingspace
+controllersWS->client --: 201 {success:true, data}
+
+@enduml

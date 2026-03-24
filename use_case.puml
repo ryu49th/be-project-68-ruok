@@ -1,0 +1,119 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Guest" as guest
+actor "Registered User" as user
+actor "Admin" as admin
+
+' User inherits Guest capabilities (like viewing working spaces)
+guest <|-- user
+
+package "Authentication System" {
+  usecase "Register Account" as UC_Register
+  usecase "Login" as UC_Login
+  usecase "Logout" as UC_Logout
+  usecase "Get Own Profile" as UC_GetMe
+}
+
+package "Co-working Space System" {
+  usecase "View Co-working Spaces" as UC_ViewWS
+  usecase "Create Co-working Space" as UC_CreateWS
+  usecase "Edit Co-working Space" as UC_UpdateWS
+  usecase "Delete Co-working Space" as UC_DeleteWS
+  usecase "Rate Co-working Space" as UC_RateWS
+}
+
+package "Reservation System" {
+  usecase "Reserve Co-working Space\n(Max 3 per user)" as UC_CreateRes
+  usecase "View Own Reservation(s)" as UC_ViewOwnRes
+  usecase "Edit Own Reservation" as UC_UpdateOwnRes
+  usecase "Delete Own Reservation" as UC_DeleteOwnRes
+  
+  usecase "View ANY Reservation" as UC_ViewAllRes
+  usecase "Edit ANY Reservation" as UC_UpdateAnyRes
+  usecase "Delete ANY Reservation" as UC_DeleteAnyRes
+  usecase "Update Reservation Status" as UC_UpdateResStatus
+}
+
+' Guest Actions
+guest --> UC_Register
+guest --> UC_Login
+guest --> UC_ViewWS
+
+' Registered User Actions
+user --> UC_Logout
+user --> UC_GetMe
+user --> UC_CreateRes
+user --> UC_ViewOwnRes
+user --> UC_UpdateOwnRes
+user --> UC_DeleteOwnRes
+user --> UC_RateWS
+
+' Admin Actions
+admin --> UC_Logout
+admin --> UC_GetMe
+admin --> UC_ViewWS
+admin --> UC_CreateWS
+admin --> UC_UpdateWS
+admin --> UC_DeleteWS
+admin --> UC_ViewAllRes
+admin --> UC_UpdateAnyRes
+admin --> UC_DeleteAnyRes
+admin --> UC_UpdateResStatus
+admin --> UC_CreateRes
+
+note right of UC_Register : Requires name, telephone,\nemail, and password
+note right of UC_CreateRes : Specifying date and\npreferred workspace
+
+@enduml
+
+'--- sequence diagram for rating workspace
+
+@startuml
+actor User
+participant "Client App" as Client
+participant "API Server" as Server
+participant WorkingSpace
+
+User -> Client : Click "Rate" with value
+Client -> Server : POST /api/v1/workingspaces/{id}/rating {rating}
+Server -> WorkingSpace : findById(id)
+activate WorkingSpace
+WorkingSpace --> Server : workspace document
+deactivate WorkingSpace
+Server -> WorkingSpace : update averageRating, totalReviews
+activate WorkingSpace
+WorkingSpace --> Server : updated document
+deactivate WorkingSpace
+Server --> Client : 200 OK {updated workspace}
+Client --> User : Show updated rating
+
+@enduml
+
+'--- sequence diagram for updating reservation status
+
+@startuml
+actor Admin
+participant "Admin UI" as UI
+participant "API Server" as Server2
+participant Reservation
+participant User as ResUser
+
+Admin -> UI : Change status dropdown
+UI -> Server2 : PUT /api/v1/reservations/{id}/status {status}
+Server2 -> Reservation : findById(id)
+activate Reservation
+Reservation --> Server2 : reservation doc
+deactivate Reservation
+Server2 -> Reservation : findByIdAndUpdate(...)
+activate Reservation
+Reservation --> Server2 : updated doc (populated user)
+deactivate Reservation
+alt status confirmed or cancelled
+    Server2 -> ResUser : send email notification
+end
+Server2 --> UI : 200 OK {updated reservation}
+UI --> Admin : display confirmation
+
+@enduml

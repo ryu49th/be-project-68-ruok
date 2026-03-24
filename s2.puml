@@ -1,0 +1,32 @@
+' -- update reservation status --
+@startuml Update Reservation Status (PUT)
+
+header VacQ Sequence Diagram
+footer Page %page% of %lastpage%
+title "Update Reservation Status (PUT)"
+
+actor Admin
+participant "Client" as client
+participant "<<javascript>>\n:server" as server
+participant "<<router>>\n:reservations" as routerRes
+participant "<<controllers>>\n:reservations" as controllersRes
+participant "<<model>>\n:Reservation" as modelRes
+database "<<MongoDB>>\n:reservations" as ResDatabase
+participant "<<model>>\n:User" as modelUser
+
+Admin -> client : Change status in UI
+client->server ++: PUT /api/v1/reservations/{id}/status
+server->routerRes ++: app.use('/api/v1/reservations', reservations)
+routerRes -> controllersRes ++: updateReservationStatus(req.params.id, req.body)
+controllersRes->modelRes ++: findById(id)
+modelRes --> ResDatabase ++: query
+ResDatabase --> modelRes --: reservationDoc
+modelRes --> controllersRes --: reservation
+controllersRes -> modelRes ++: findByIdAndUpdate(...).populate('user')
+modelRes --> ResDatabase ++: update
+ResDatabase --> modelRes --: updatedDoc
+modelRes --> controllersRes --: updated reservation
+controllersRes->client --: 200 {success:true, data}
+client --> Admin : show confirmation
+
+@enduml

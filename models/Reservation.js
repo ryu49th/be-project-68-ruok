@@ -24,7 +24,20 @@ const ReservationSchema = new mongoose.Schema({
     endTime: {
         type: String,
         required: [true, 'Please add an end time'],
-        match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please use HH:mm format']
+        match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please use HH:mm format'],
+        validate: {
+            validator: function(value) {
+                if (!this.startTime || !value) return true;
+                return value > this.startTime;
+            },
+            message: 'End time must be after start time'
+        }
+    },
+
+    contactPhone: {
+        type: String,
+        required: [true, 'Please add a contact phone number'],
+        match: [/^0[0-9]{9}$/, 'Please use a valid 10-digit phone number starting with 0']
     },
 
     purpose: {
